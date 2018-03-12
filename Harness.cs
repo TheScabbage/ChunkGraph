@@ -46,7 +46,21 @@ public class Harness
 					case "delete":
 						Delete(int.Parse(input[1]), ParseSide(input[2]));
 						break;
+					case "loop":
+						Loop(int.Parse(input[1]));
+						break;
 				}
+			}
+		}
+	}
+
+	static void Loop(int origin)
+	{
+		foreach(List<ChunkNode> loop in Linker.GetLoops(nodes[origin]))
+		{
+			if(loop != null)
+			{
+				Console.WriteLine("Found loop of length " + loop.Count);
 			}
 		}
 	}

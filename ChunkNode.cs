@@ -73,6 +73,18 @@ public class ChunkNode
 		}
 	}
 	
+	public IEnumerable<ChunkNode> GetNeighbours()
+	{
+		for(int ii = 0; ii < 5; ii++)
+		{
+			Connection current = sides[ii];
+			while(current != null)
+			{
+				yield return current.neighbour;
+				current = current.next;
+			}
+		}
+	}
 
 	public void AddNeighbour(ChunkNode node, Side side)
 	{
