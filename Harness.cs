@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public class Harness
 {
 	static List<ChunkNode> nodes = new List<ChunkNode>();
-	static Random rng = new Random(1337);
+	public static Random rng = new Random(1337);
 
 	public static void Main(String[] args)
 	{
