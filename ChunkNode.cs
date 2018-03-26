@@ -1,47 +1,39 @@
 using System.Collections.Generic;
 
 
+// Manages the topology of a chunk graph.
+// Has a 1:1 relationship with chunks, but encapsulates all graph operations away from
+// the trixel chunks
+// Note that any operations on neighbour relationships are local, and must be reflected by
+// an equal update in any neighbour nodes to maintain an uncorrupted graph.
 public class ChunkNode
 {
-	int properties;
 	TrixelChunk chunk;
-	Connection[] sides;
+	// connections[i][j] denotes the jth neither of side i
+	// The side enum is built to work with this array as an index
+	Connection[][] connections;
+	// All of the chunks that this chunk depends on to merge
+	ChunkNode[] mergeDependencies;
 	
 	public bool Mergable
 	{
 		get
 		{
-			return SubdivisionIndex > 0;
-		}
-		
-	}
-
-	public int SubdivisionIndex
-	{
-		get
-		{
-			// Index is the lower byte of the properties array
-			return properties & 0xFF;
-		}
-	}
-
-	public int LOD
-	{
-		get
-		{
-			// LOD is the second byte of the properties array
-			return (properties & 0xFF00) >> 8;
-		}
-		set
-		{
-			// Mask out lower byte
-			int val = value & 0xFF;
-			// Shift it left
-			val = val << 8;
-			// set the second byte of the properties array
-			properties = properties & ~0xFF00;
-			properties |= val;
-		}
+			// For this chunk to be mergable, all merge dependencies must NOT be mergable.
+			// Equivalently, this chunk cannot be merged if any depency is mergable.
+			if(mergeDependencies == null)
+			{
+				return true;
+			}
+			foreach(ChunkNode node in mergeDependencies)
+			{
+				if(node.Mergable)
+				{
+					return false;
+				}
+			}
+			return true;
+		}	
 	}
 
 	public enum Side {X, Z, W, U, D}
@@ -49,7 +41,6 @@ public class ChunkNode
 	private class Connection
 	{
 		public ChunkNode neighbour;
-		public Connection next;
 
 		public Connection(ChunkNode neighbour)
 		{
@@ -60,48 +51,52 @@ public class ChunkNode
 	public ChunkNode(TrixelChunk chunk)
 	{
 		this.chunk = chunk;
-		sides = new Connection[5];
+		connections = new Connection[5][];
 	}
 	
+	// Gets all neighbours connected to the given side
 	public IEnumerable<ChunkNode> GetNeighbours(Side side)
 	{
-		Connection current = sides[(int)side];
-		while(current != null)
+		if(connections[(int)side] != null)
 		{
-			yield return current.neighbour;
-			current = current.next;
+			foreach(Connection c in connections[(int)side])
+			{
+				yield return c.neighbour;
+			}
 		}
 	}
 	
+	// Gets all neighbours of the node
 	public IEnumerable<ChunkNode> GetNeighbours()
 	{
 		for(int ii = 0; ii < 5; ii++)
 		{
-			Connection current = sides[ii];
-			while(current != null)
+			if(connections[ii] != null)
 			{
-				yield return current.neighbour;
-				current = current.next;
+				foreach(Connection c in connections[ii])
+				{
+					yield return c.neighbour;
+				}
 			}
 		}
 	}
 
-	public void AddNeighbour(ChunkNode node, Side side)
+	// Sets the neighbours of the given side
+	public void SetNeighbours(ChunkNode[] nodes, Side side)
 	{
-		if(sides[(int)side] == null)
+		int sideIndex = (int)side;
+		Connection[] newConnections = new Connection[nodes.Length];
+		for(int ii = 0; ii < nodes.Length; ii++)
 		{
-			sides[(int)side] = new Connection(node);
-		}else
-		{
-			Connection temp = sides[(int)side];
-			sides[(int)side] = new Connection(node);
-			sides[(int)side].next = temp;
-		}
+			newConnections[ii] = new Connection(nodes[ii]);
+		} 
+		connections[sideIndex] = newConnections;
 	}
 
+	// Removes all neighbours from the given side
 	public void DeleteNeighbours(Side side)
 	{
-		sides[(int)side] = null;
+		connections[(int)side] = null;
 	}
 
 	public override int GetHashCode()

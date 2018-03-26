@@ -25,19 +25,16 @@ public class Harness
 						AddNode();
 						break;
 					case "link":
-						if(input.Length == 5)
+						if(input.Length == 3)
 						{
-							int c1, c2;
-							ChunkNode.Side s1, s2;
-							c1 = int.Parse(input[1]);
-							c2 = int.Parse(input[2]);
-							s1 = ParseSide(input[3]);
-							s2 = ParseSide(input[4]);
+							ChunkNode.Side s;
+							int c = int.Parse(input[1]);
+							s = ParseSide(input[2]);
 							
-							Link(c1, c2, s1, s2);
+							Link(c, s);
 						}else
 						{
-							Console.WriteLine("Invalid length. Should be in the format 'link [n1] [n2] [s1] [s2]");
+							Console.WriteLine("Invalid length. Should be in the format 'link [index] [side]");
 						}
 						break;
 					case "display":
@@ -46,21 +43,20 @@ public class Harness
 					case "delete":
 						Delete(int.Parse(input[1]), ParseSide(input[2]));
 						break;
-					case "loop":
-						Loop(int.Parse(input[1]));
+					case "subdivide":
+						if(input.Length == 2)
+						{
+							int index;
+							if(int.TryParse(input[1], out index))
+							{
+								Linker.Subdivide(nodes[index]);
+							}else
+							{
+								Console.WriteLine("Invalid index.");
+							}
+						}
 						break;
 				}
-			}
-		}
-	}
-
-	static void Loop(int origin)
-	{
-		foreach(List<ChunkNode> loop in Linker.GetLoops(nodes[origin]))
-		{
-			if(loop != null)
-			{
-				Console.WriteLine("Found loop of length " + loop.Count);
 			}
 		}
 	}
@@ -89,6 +85,7 @@ public class Harness
 						Console.WriteLine("  Side " + (ChunkNode.Side)(ss) + ": ");
 					}
 					Console.WriteLine("    Neighbour " + nn + ": " + neighbour.GetHashCode());
+					nn++;
 				}
 			}
 		}
@@ -119,11 +116,26 @@ public class Harness
 		Console.WriteLine("Added node " + (nodes.Count - 1) + " with id " + nodes[nodes.Count - 1].GetHashCode());
 	}
 	
-	static void Link(int c1, int c2, ChunkNode.Side side1, ChunkNode.Side side2)
+	static void Link(int chunkIndex, ChunkNode.Side side)
 	{
-		nodes[c1].AddNeighbour(nodes[c2], side1);
-		nodes[c2].AddNeighbour(nodes[c1], side2);
-		Console.WriteLine("Linked node " + c1 + " to node " + c2 + ", side1: " + side1 + ", side2: " + side2);
+		Console.WriteLine("Linking nodes to side " + chunkIndex + " of chunk " + side);
+		List<ChunkNode> newNeighbours = new List<ChunkNode>();
+		Console.WriteLine("Enter node indices. Enter non integer string to finish.");
+		bool parsing = true;
+		while(parsing)
+		{
+			String input = Console.ReadLine();
+			int index;
+			if(int.TryParse(input, out index))
+			{
+				newNeighbours.Add(nodes[index]);
+			}else
+			{
+				parsing = false;
+			}
+		}
+		nodes[chunkIndex].SetNeighbours(newNeighbours.ToArray(), side);
+		Console.WriteLine("Added " + newNeighbours.Count + " neighbours to side " + side + " of node " + chunkIndex);
 	}
 
 }
